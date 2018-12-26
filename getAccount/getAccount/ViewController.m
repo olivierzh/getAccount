@@ -7,7 +7,25 @@
 //
 
 #import "ViewController.h"
+#import <dlfcn.h>
 #import <objc/runtime.h>
+
+
+@interface SSAccount : NSObject
+@property (copy) NSString *accountName;
+@property (retain) NSNumber *uniqueIdentifier;
+@end
+
+@interface SSAccountStore : NSObject
++ (id)defaultStore;
+@end
+
+@interface SSClientAccountStore : SSAccountStore
+
+- (id)activeAccount;
+- (id)accounts;
+
+@end
 
 @interface ViewController ()
 
@@ -19,22 +37,18 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
     
-    self.view.backgroundColor = [UIColor redColor];
+    void *ssHandle = dlopen("/System/Library/PrivateFrameworks/StoreServices.framework/StoreServices", RTLD_NOW);
     
-    NSBundle *bundle = [NSBundle bundleWithPath:@"/System/Library/PrivateFrameworks/StoreServices.framework"];
-    if ([bundle load]) {
-        Class SSAccountStore_class = objc_getClass("SSAccountStore");
-        id store = [SSAccountStore_class performSelector:@selector(defaultStore)];
-        id account = [store performSelector:@selector(activeAccount)];
-        
-        NSString *accountName = [account performSelector:@selector(accountName)];
-        
-        UILabel *lab = [[UILabel alloc] initWithFrame:[UIScreen mainScreen].bounds];
-        lab.text = accountName;
-        [self.view addSubview:lab];
-        
-        self.view.backgroundColor = [UIColor greenColor];
-    }
+    SSClientAccountStore *SSClientAccountStore = [objc_getClass("SSAccountStore") defaultStore];
+    SSAccount *mSSAccount = [SSClientAccountStore activeAccount];
+    
+    dlclose(ssHandle);
+    
+    NSString *accountName = mSSAccount.accountName;
+    
+    UILabel *lab = [[UILabel alloc] initWithFrame:[UIScreen mainScreen].bounds];
+    lab.text = accountName;
+    [self.view addSubview:lab];
 }
 
 
